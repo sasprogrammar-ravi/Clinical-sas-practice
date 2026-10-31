@@ -1,0 +1,79 @@
+libname adam "C:\Users\lenovo\Downloads\demog table\Rae dataset";
+
+data adsl;
+set adam.adsl;
+run;
+/**/
+/*data adsl01;*/
+/*set adsl;*/
+/*keep usubjid race age ethnic sex trt01a saffl;*/
+/*where saffl="Y";*/
+/*run;*/
+/**/
+
+proc sql;
+create table adsl02 as select usubjid, race, ethnic, sex, age,trt01a 
+                                           
+											 from adsl where saffl='Y';
+quit; 
+                                   
+data dm01;
+set adsl02;
+output;
+trt01a="overall";
+output;
+run;
+/*analysis for age */
+/*proc means data=dm01 n mean median std min max;*/
+proc means data=dm01 noprint;
+var age;
+class trt01a;
+output out=stats01(drop=_type_ _freq_ where =(trt01a ne ""))
+                  n=_n
+				  mean=_Mean
+				  median=_Median
+				  std=_Std
+				  min=_Min
+				  max=_Max;
+/*                   n=*/
+/*				   mean=*/
+/*				   median=*/
+/*				   std=*/
+/*				   min=*/
+/*				   max= /autoname;*/
+				  run;
+
+run;
+
+data stats02;
+set stats01;
+n=put(_n,z2.);
+meansd=put(_mean,7.1)||"("||strip(put(_std,8.2))||")";
+median=put(_median,7.1);
+minmax=put(_min,z2.)||","||put(_max,z2.);
+drop _:;
+run;
+
+proc transpose data=stats02 out=stats03;
+var n meansd median minmax;
+id trt01a;
+run;
+
+data stats04;
+length _name_$50;
+set stats03;
+if _name_='n' then _Name_="N";
+else if _name_='mean' then _name_='Mean(Sd)';
+else if _name_='median' then _name_='Median';
+else if _name_='minmax'  then _name_='MinMax';
+run;
+
+data agelabel;
+_name_='Age(Years)';
+run;
+
+data agefinal;
+length _name_$50;
+set agelabel stats04;
+if _N_ gt 1 then _name_="  "||_name_;
+run;
